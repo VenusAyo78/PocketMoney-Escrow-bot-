@@ -1,46 +1,79 @@
-
-const { Telegraf } = require('telegraf');
-const express = require('express');
-const mongoose = require('mongoose');
-const app = express();
 require('dotenv').config();
+const { Telegraf } = require('telegraf');
+const mongoose = require('mongoose');
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-app.use(bot.webhookCallback('/telegram-bot'));
 
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-
-const Deal = mongoose.model('Deal', new mongoose.Schema({
-  userId: String,
-  title: String,
-  amount: String,
+// MongoDB schema
+const dealSchema = new mongoose.Schema({
+  task: String,
+  budget: String,
   deadline: String,
-  status: { type: String, default: 'pending' }
-}));
-
-bot.start((ctx) => {
-  ctx.reply('Welcome to Escrow Mini App! Use /create_deal to begin.');
+  createdBy: String,
+  createdAt: { type: Date, default: Date.now }
 });
+const Deal = mongoose.model('Deal', dealSchema);
 
-bot.command('create_deal', (ctx) => {
-  ctx.reply('Please send deal details in the format:\nTitle | Amount (TON) | Deadline');
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Bot logic
+bot.start((ctx) => {
+  ctx.reply('Welcome to *Escrow Bot*! To create a deal, send a message like:\n\n`Web Design | 100 TON | 7 days`', {
+    parse_mode: 'Markdown'
+  });
 });
 
 bot.on('text', async (ctx) => {
-  const [title, amount, deadline] = ctx.message.text.split('|').map(x => x.trim());
-  if (!title || !amount || !deadline) return;
-  const newDeal = new Deal({
-    userId: ctx.from.id,
-    title,
-    amount,
-    deadline
-  });
-  await newDeal.save();
-  ctx.reply(`Deal created:\nTitle: ${title}\nAmount: ${amount} TON\nDeadline: ${deadline}`);
+  try {
+    const input = ctx.message.text;
+    const [task, budget, deadline] = input.split('|').map(x => x.trim());
+
+    if (!task || !budget || !deadline) {
+      return ctx.reply('⚠️ Please send details in this format:\n\n`task | budget | deadline`', {
+        parse_mode: 'Markdown'
+      });
+    }
+
+    const deal = new Deal({
+      task,
+      budget,
+      deadline,
+      createdBy: ctx.from.username || ctx.from.first_name
+    });
+
+    await deal.save();
+
+    ctx.reply(`✅ *Deal Created!*\n\n*Task:* ${task}\n*Budget:* ${budget} TON\n*Deadline:* ${deadline}`, {
+      parse_mode: 'Markdown'
+    });
+
+  } catch (err) {
+    console.error('Error saving deal:', err);
+    ctx.reply('❌ Something went wrong while creating the deal. Please try again.');
+  }
 });
 
-app.get('/', (req, res) => res.send('Escrow Bot Server Running'));
+// Webhook setup
+app.use(bot.webhookCallback('/telegram-bot'));
+bot.telegram.setWebhook(`${process.env.SERVER_URL}/telegram-bot`);
 
-bot.telegram.setWebhook(process.env.SERVER_URL + '/telegram-bot');
+app.get('/', (req, res) => {
+  res.send('Escrow bot server is running!');
+});
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
