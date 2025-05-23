@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Escrow Mini App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect.min.js"></script>
+  <style>body { font-family: sans-serif; padding: 20px; }</style>
+</head>
+<body>
+  <h2>Start New Escrow</h2>
+  <input type="text" id="deal" placeholder="Title | Amount | Deadline" style="width: 100%">
+  <button onclick="sendDeal()">Send to Bot</button>
+  <div style="margin-top:20px;">
+    <h3>Connect TON Wallet</h3>
+    <button id="connectWallet">Connect Wallet</button>
+    <p id="walletAddress"></p>
+  </div>
+  <p id="status"></p>
+
+  <script>
+    Telegram.WebApp.ready();
+
+    const sendDeal = () => {
+      const deal = document.getElementById('deal').value;
+      Telegram.WebApp.sendData(deal);
+      document.getElementById('status').textContent = 'Deal sent to bot!';
+    };
+
+    document.getElementById('connectWallet').onclick = async () => {
+      const connector = new TON_CONNECT.TonConnect();
+      await connector.restoreConnection();
+      const walletsList = await connector.getWallets();
+      if (walletsList.length) {
+        await connector.connect({ universalLink: walletsList[0].universalLink });
+        document.getElementById('walletAddress').innerText = 'Connected: ' + (await connector.account()).address;
+      } else {
+        alert('No wallet found');
+      }
+    };
+  </script>
+</body>
+</html>
