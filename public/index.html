@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escrow Mini App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f2f2f2;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Create a Deal</h2>
+    <input type="text" id="task" placeholder="Task (e.g., Logo Design)">
+    <input type="text" id="budget" placeholder="Budget (e.g., 50 TON)">
+    <input type="text" id="deadline" placeholder="Deadline (e.g., 3 days)">
+    <button onclick="sendDeal()">Submit Deal</button>
+  </div>
+
+  <script>
+    async function sendDeal() {
+      const task = document.getElementById('task').value;
+      const budget = document.getElementById('budget').value;
+      const deadline = document.getElementById('deadline').value;
+
+      if (!task || !budget || !deadline) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      const message = `${task} | ${budget} | ${deadline}`;
+      if (window.Telegram.WebApp) {
+        Telegram.WebApp.sendData(message);
+        Telegram.WebApp.close();
+      } else {
+        alert("Telegram Web App not supported.");
+      }
+    }
+  </script>
+</body>
+</html>
